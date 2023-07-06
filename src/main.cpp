@@ -126,11 +126,11 @@ class Node{
 
 
 
-// struct CompareNodes {
-//     bool operator()(Node* a, Node* b) {
-//         return a->f_hat > b->f_hat;
-//     }
-// };
+struct CompareNodes {
+    bool operator()(shared_ptr<Node> a, shared_ptr<Node> b) {
+        return a->f_hat > b->f_hat;
+    }
+};
 
 shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
 
@@ -140,27 +140,20 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
     int i;
     vector<shared_ptr<Node>> children;
     shared_ptr<Node> parent = make_shared<Node>(puzzle);
-    vector<shared_ptr<Node>> open_list;
-    vector<shared_ptr<Node>> closed_list;
+    // vector<shared_ptr<Node>> open_list;
+    // vector<shared_ptr<Node>> closed_list;
+    priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>,CompareNodes> pq;
     shared_ptr<Node> head;
     clock_t start = clock();
 
-    open_list.push_back(parent);
+    pq.push(parent);
 
-    while(!open_list.empty()){
-        min = INT_MAX;
-
-
-        for(i=0; i<open_list.size(); i++){
-            if(open_list[i]->f_hat<min){
-                index = i;
-                min = open_list[i]->f_hat;
-            }
-        }
+    while(1){
 
 
-        head = open_list[index];
-        open_list.erase(open_list.begin() + index);
+
+        head = pq.top();
+        pq.pop();
 
         if (head->state==GOALSTATE){
             clock_t end = clock();
@@ -175,30 +168,28 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
         node_num = node_num + children.size();
 
         for (auto child: children){
-            auto in_open_list = find_if(open_list.begin(),open_list.end(),[child](shared_ptr<Node> n){
-                return child->state==n->state;
-            });
+            pq.push(child);
+            // auto in_open_list = find_if(open_list.begin(),open_list.end(),[child](shared_ptr<Node> n){
+            //     return child->state==n->state;
+            // });
 
-            auto in_closed_list = find_if(closed_list.begin(),closed_list.end(),[child](shared_ptr<Node> n){
-                return child->state==n->state;
-            });
+            // auto in_closed_list = find_if(closed_list.begin(),closed_list.end(),[child](shared_ptr<Node> n){
+            //     return child->state==n->state;
+            // });
 
-            if (in_open_list==open_list.end() && in_closed_list==closed_list.end()){
-                open_list.push_back(child);
-            }else if (in_open_list!=open_list.end() && (*in_open_list)->f_hat>child->f_hat){
+            // if (in_open_list==open_list.end() && in_closed_list==closed_list.end()){
+            //     open_list.push_back(child);
+            // }else if (in_open_list!=open_list.end() && (*in_open_list)->f_hat>child->f_hat){
 
-                open_list.erase(in_open_list);
-                open_list.push_back(child);
-            }
+            //     open_list.erase(in_open_list);
+            //     open_list.push_back(child);
+            // }
             // else if (in_closed_list!=closed_list.end() && (*in_closed_list)->f_hat>child->f_hat){
             //     std::cout <<"wawawa"<<std::endl;
             //     // throw std::runtime_error("ヒューリスティック関数に矛盾性があるかもしれません");
             // }
 
         }
-
-        closed_list.push_back(head);
-
 
     }
     return nullptr;
