@@ -159,7 +159,10 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
             clock_t end = clock();
             const double time = static_cast<double>(end - start) / CLOCKS_PER_SEC ;
 
-            cout<<node_num/time<<endl;
+            cout<<"-------------------"<<endl;
+            cout<<"node_num:            "<<node_num<<endl;
+            cout<<"time[s]:             "<<time<<endl;
+            cout<<"node_num/time[s]:    "<<node_num/time<<endl;
             return head;
         }
 
