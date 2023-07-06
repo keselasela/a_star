@@ -6,14 +6,21 @@
 #include <memory>
 #include <queue>
 #include <algorithm>
+#include <climits>
+#include <time.h>
 using namespace std;
 
-constexpr int STEATX = 3;
-constexpr int STATEY = 3;
+// const vector<vector<int>> GOALSTATE = {
+//     {0, 1, 2},
+//     {3, 4, 5},
+//     {6, 7, 8}
+// };
+
 const vector<vector<int>> GOALSTATE = {
-    {0, 1, 2},
-    {3, 4, 5},
-    {6, 7, 8}
+    { 0, 1, 2, 3},
+    { 4, 5, 6, 7},
+    { 8, 9,10,11},
+    {12,13,14,15}
 };
 
 class Node{
@@ -27,7 +34,7 @@ class Node{
     int f_hat;
 
 
-    Node(vector<vector<int>> state, shared_ptr<Node>parent = nullptr){
+    inline Node(vector<vector<int>> state, shared_ptr<Node>parent = nullptr){
         this->parent = parent;
         this->state = state;
         this->h_hat = get_manhattan_distance(state);
@@ -45,7 +52,7 @@ class Node{
         }
     }
 
-    static int get_manhattan_distance(vector<vector<int>> state) {
+    inline static int get_manhattan_distance(vector<vector<int>> state) {
         int manhattan_distance = 0;
         for (int y = 0; y < state.size(); y++) {
             for (int x = 0; x < state[y].size(); x++) {
@@ -80,8 +87,18 @@ class Node{
         cout<< "h_hat: " << h_hat <<endl;
         cout<< "f_hat: " << f_hat <<endl;
     }
+    void show_path(){
 
-    vector<shared_ptr<Node>> expand(shared_ptr<Node> me){
+        this->show();
+
+        shared_ptr<Node> pa = this->parent;
+        while(pa){
+            pa->show();
+            pa = pa->parent;
+        }
+    }
+
+    inline vector<shared_ptr<Node>> expand(shared_ptr<Node> me){
         vector<shared_ptr<Node>>children;
         vector<pair<int,int>> directions ={
             {-1,0}, {1,0},{0,-1},{0,1}
@@ -107,6 +124,8 @@ class Node{
 
 };
 
+
+
 // struct CompareNodes {
 //     bool operator()(Node* a, Node* b) {
 //         return a->f_hat > b->f_hat;
@@ -115,30 +134,45 @@ class Node{
 
 shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
 
-    
+    int node_num = 0;
+    int min;
+    int index;
+    int i;
+    vector<shared_ptr<Node>> children;
     shared_ptr<Node> parent = make_shared<Node>(puzzle);
-
-    // cout<< "------問題------" <<endl;
-    // parent->show();
-
     vector<shared_ptr<Node>> open_list;
     vector<shared_ptr<Node>> closed_list;
+    shared_ptr<Node> head;
+    clock_t start = clock();
 
     open_list.push_back(parent);
 
     while(!open_list.empty()){
+        min = INT_MAX;
 
-        sort(open_list.begin(),open_list.end(),[](const shared_ptr<Node>a,const shared_ptr<Node> b){
-            return a->f_hat > b->f_hat;
-        });
-        shared_ptr<Node> head = open_list.back();
-        open_list.pop_back();
+
+        for(i=0; i<open_list.size(); i++){
+            if(open_list[i]->f_hat<min){
+                index = i;
+                min = open_list[i]->f_hat;
+            }
+        }
+
+
+        head = open_list[index];
+        open_list.erase(open_list.begin() + index);
 
         if (head->state==GOALSTATE){
+            clock_t end = clock();
+            const double time = static_cast<double>(end - start) / CLOCKS_PER_SEC ;
+
+            cout<<node_num/time<<endl;
             return head;
         }
 
-        vector<shared_ptr<Node>> children = head->expand(head);
+        children = head->expand(head);
+
+        node_num = node_num + children.size();
 
         for (auto child: children){
             auto in_open_list = find_if(open_list.begin(),open_list.end(),[child](shared_ptr<Node> n){
@@ -155,10 +189,11 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
 
                 open_list.erase(in_open_list);
                 open_list.push_back(child);
-            }else if (in_closed_list!=closed_list.end() && (*in_closed_list)->f_hat>child->f_hat){
-                std::cout << std::endl;
-                // throw std::runtime_error("ヒューリスティック関数に矛盾性があるかもしれません");
             }
+            // else if (in_closed_list!=closed_list.end() && (*in_closed_list)->f_hat>child->f_hat){
+            //     std::cout <<"wawawa"<<std::endl;
+            //     // throw std::runtime_error("ヒューリスティック関数に矛盾性があるかもしれません");
+            // }
 
         }
 
@@ -169,19 +204,63 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
     return nullptr;
 }
 
+std::vector<std::vector<int>> generateRandomPuzzle(int moveCount) {
+
+    std::vector<std::vector<int>> puzzle = GOALSTATE;
+
+    int emptyRow, emptyCol;
+    srand(0);
+
+    std::vector<std::pair<int, int>> moves = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}}; // 右、左、下、上に移動するための座標の変化量
+
+    for (int i = 0; i < moveCount; i++) {
+        std::vector<std::pair<int, int>> possibleMoves;
+
+        // 空タイルの位置を検索
+        for (int row = 0; row < puzzle.size(); row++) {
+            for (int col = 0; col < puzzle[0].size(); col++) {
+                if (puzzle[row][col] == 0) {
+                    emptyRow = row;
+                    emptyCol = col;
+                    break;
+                }
+            }
+        }
+
+        // 空タイルの周囲に移動可能なタイルの位置を取得
+        for (const auto& move : moves) {
+            int newRow = emptyRow + move.first;
+            int newCol = emptyCol + move.second;
+            if (newRow >= 0 && newRow < puzzle.size() && newCol >= 0 && newCol < puzzle[0].size()) {
+                possibleMoves.push_back({newRow, newCol});
+            }
+        }
+
+        // ランダムに移動先を選択して空タイルを移動させる
+        std::random_shuffle(possibleMoves.begin(), possibleMoves.end());
+        int newRow = possibleMoves[0].first;
+        int newCol = possibleMoves[0].second;
+        std::swap(puzzle[emptyRow][emptyCol], puzzle[newRow][newCol]);
+    }
+
+    return puzzle;
+}
+
 
 int main() {
-    srand(time(0));
 
-    std::vector<std::vector<int>> puzzle = {
-        {7, 2, 4}, 
-        {5, 0, 6}, 
-        {8, 3, 1}
-        };
 
-    std::cout << "------問題------" << endl;
-    for (int row = 0; row < 3; row++) {
-        for (int col = 0; col < 3; col++) {
+    // std::vector<std::vector<int>> puzzle = {
+    //     {7, 2, 4}, 
+    //     {5, 0, 6}, 
+    //     {8, 3, 1}
+    //     };
+    
+    std::vector<std::vector<int>> puzzle = generateRandomPuzzle(130);
+
+    std::cout << "------problem------" << endl;
+    for (int row = 0; row < puzzle.size(); row++) {
+        for (int col = 0; col < puzzle[row].size(); col++) {
             std::cout << puzzle[row][col] << " ";
         }
         std::cout << std::endl;
@@ -192,6 +271,8 @@ int main() {
 
     
     answer->show_score();
+
+    // answer->show_path();
 
 
     return 0;
