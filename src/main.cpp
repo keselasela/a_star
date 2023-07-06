@@ -134,6 +134,7 @@ struct CompareNodes {
 
 shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
 
+    int loop_count = 0;
     int node_num = 0;
     int min;
     int index;
@@ -149,6 +150,7 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
     pq.push(parent);
 
     while(1){
+        loop_count = loop_count + 1;
 
 
 
@@ -160,6 +162,7 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
             const double time = static_cast<double>(end - start) / CLOCKS_PER_SEC ;
 
             cout<<"-------------------"<<endl;
+            cout<<"loop_count:          "<<loop_count<<endl;
             cout<<"node_num:            "<<node_num<<endl;
             cout<<"time[s]:             "<<time<<endl;
             cout<<"node_num/time[s]:    "<<node_num/time<<endl;
