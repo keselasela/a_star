@@ -8,6 +8,9 @@
 #include <algorithm>
 #include <climits>
 #include <time.h>
+#include <unordered_map>
+#include <unordered_set>
+
 using namespace std;
 
 // const vector<vector<int>> GOALSTATE = {
@@ -35,6 +38,7 @@ class Node{
 
 
     inline Node(vector<vector<int>> state, shared_ptr<Node>parent = nullptr){
+   
         this->parent = parent;
         this->state = state;
         this->h_hat = get_manhattan_distance(state);
@@ -124,7 +128,16 @@ class Node{
 
 };
 
+std::size_t vector_hash(vector<vector<int>> const vec){
+  std::size_t seed = vec.size();
+  for( auto row:vec){
+      for(auto& i : row) {
+        seed ^= static_cast<uint32_t>(i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+  }
 
+  return seed;
+}
 
 struct CompareNodes {
     bool operator()(shared_ptr<Node> a, shared_ptr<Node> b) {
@@ -134,6 +147,8 @@ struct CompareNodes {
 
 shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
 
+    std::unordered_set<int> seenValues;
+    size_t hashValue;
     int loop_count = 0;
     int node_num = 0;
     int min;
@@ -142,20 +157,31 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
     vector<shared_ptr<Node>> children;
     shared_ptr<Node> parent = make_shared<Node>(puzzle);
     // vector<shared_ptr<Node>> open_list;
-    // vector<shared_ptr<Node>> closed_list;
+    vector<shared_ptr<Node>> closed_list;
     priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>,CompareNodes> pq;
     shared_ptr<Node> head;
     clock_t start = clock();
-
     pq.push(parent);
 
     while(1){
-        loop_count = loop_count + 1;
-
-
-
+        
         head = pq.top();
         pq.pop();
+
+        hashValue = vector_hash(head->state);
+        if (seenValues.find(hashValue) != seenValues.end()) {
+
+            auto in_closed_list = find_if(closed_list.begin(),closed_list.end(),[head](shared_ptr<Node> n){
+                return head->state==n->state && head->f_hat < n->f_hat;
+            });
+            if(in_closed_list==closed_list.end()){
+                continue;
+            }
+        } else {
+            seenValues.insert(hashValue);
+        }
+        loop_count = loop_count + 1;
+
 
         if (head->state==GOALSTATE){
             clock_t end = clock();
@@ -169,33 +195,17 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
             return head;
         }
 
+        
         children = head->expand(head);
 
         node_num = node_num + children.size();
 
         for (auto child: children){
             pq.push(child);
-            // auto in_open_list = find_if(open_list.begin(),open_list.end(),[child](shared_ptr<Node> n){
-            //     return child->state==n->state;
-            // });
-
-            // auto in_closed_list = find_if(closed_list.begin(),closed_list.end(),[child](shared_ptr<Node> n){
-            //     return child->state==n->state;
-            // });
-
-            // if (in_open_list==open_list.end() && in_closed_list==closed_list.end()){
-            //     open_list.push_back(child);
-            // }else if (in_open_list!=open_list.end() && (*in_open_list)->f_hat>child->f_hat){
-
-            //     open_list.erase(in_open_list);
-            //     open_list.push_back(child);
-            // }
-            // else if (in_closed_list!=closed_list.end() && (*in_closed_list)->f_hat>child->f_hat){
-            //     std::cout <<"wawawa"<<std::endl;
-            //     // throw std::runtime_error("ヒューリスティック関数に矛盾性があるかもしれません");
-            // }
 
         }
+
+        closed_list.push_back(head);
 
     }
     return nullptr;
