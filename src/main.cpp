@@ -10,6 +10,7 @@
 #include <time.h>
 #include <unordered_map>
 #include <unordered_set>
+#include <iomanip>
 
 using namespace std;
 
@@ -26,111 +27,81 @@ const vector<vector<int>> GOALSTATE = {
     {12,13,14,15}
 };
 
-class Node{
-    public:
-    vector<vector<int>> state;
-    shared_ptr<Node> parent;
-    int empty_location_x;
-    int empty_location_y;
-    int g_hat;
-    int h_hat;
-    int f_hat;
 
 
-    inline Node(vector<vector<int>> state, shared_ptr<Node>parent = nullptr){
-   
-        this->parent = parent;
-        this->state = state;
-        this->h_hat = get_manhattan_distance(state);
-        this->g_hat = parent ? parent->g_hat+1:0;
-        this->f_hat = this->g_hat + this->h_hat;
-
-        for (int i = 0; i < state.size(); i++) {
-            for (int j = 0; j < state[i].size(); j++) {
-                if (state[i][j] == 0) {
-                    this->empty_location_x = j;
-                    this->empty_location_y = i;
-                    return;
-                }
-            }
-        }
-    }
-
-    inline static int get_manhattan_distance(vector<vector<int>> state) {
-        int manhattan_distance = 0;
-        for (int y = 0; y < state.size(); y++) {
-            for (int x = 0; x < state[y].size(); x++) {
-                int item = state[y][x];
-                for (int g_y = 0; g_y < GOALSTATE.size(); g_y++) {
-                    for (int g_x = 0; g_x < GOALSTATE[g_y].size(); g_x++) {
-                        int g_item = GOALSTATE[g_y][g_x];
-                        if (item != 0 && item == g_item) {
-                            manhattan_distance += abs(x - g_x) + abs(y - g_y);
-                        }
-                    }
-                }
-            }
-        }
-        return manhattan_distance;
-    }
-
-    void show(){
-        cout<<"-------------------"<<endl;
-        for (int i=0;i<state.size();i++){
-            for(int j=0;j<state[i].size();j++){
-                cout<<state[i][j]<<" ";
-            }
-            cout<<endl;
+void show(vector<vector<int>> state){
+    cout<<"-------------------"<<endl;
+    for (int i=0;i<state.size();i++){
+        for(int j=0;j<state[i].size();j++){
+            cout<<state[i][j]<<" ";
         }
         cout<<endl;
     }
+    cout<<endl;
+}
+// void static show_score(){
+//     cout<<"-------------------"<<endl;
+//     cout<< "g_hat: " << g_hat <<endl;
+//     cout<< "h_hat: " << h_hat <<endl;
+//     cout<< "f_hat: " << f_hat <<endl;
+// }
+// void show_path(
+//     tuple<int,int,vector<vector<int>>> node,
+//     unordered_map<size_t,tuple<int,int,vector<vector<int>>>> hash_map
+//     ){
+//     vector<vector<int>> state = get<2>(node);
+//     show(state);
 
-    void show_score(){
-        cout<<"-------------------"<<endl;
-        cout<< "g_hat: " << g_hat <<endl;
-        cout<< "h_hat: " << h_hat <<endl;
-        cout<< "f_hat: " << f_hat <<endl;
-    }
-    void show_path(){
+//     size_t hashValue = vector_hash(state);
 
-        this->show();
+//     tuple<int,int,vector<vector<int>>> pa = hash_map[hashValue];
+ 
+//     while(pa){
+//         pa->show();
+//         pa = pa->parent;
+//     }
+// }
 
-        shared_ptr<Node> pa = this->parent;
-        while(pa){
-            pa->show();
-            pa = pa->parent;
-        }
-    }
-
-    inline vector<shared_ptr<Node>> expand(shared_ptr<Node> me){
-        vector<shared_ptr<Node>>children;
-        vector<pair<int,int>> directions ={
-            {-1,0}, {1,0},{0,-1},{0,1}
-        };
-
-        for (auto direction :directions){
-            int destination_x = empty_location_x + direction.first;
-            int destination_y = empty_location_y + direction.second;
-            if ((0<=destination_x && destination_x<state[0].size()) && ((0<=destination_y && destination_y<state.size())) ){
-                vector<vector<int>> child_state = state;
-                swap(child_state[empty_location_y][empty_location_x], child_state[destination_y][destination_x]);
-                shared_ptr<Node> child = make_shared<Node>(child_state,me);
-                children.push_back(child);
+inline void expand(const shared_ptr<vector<vector<int>>> parent_state_ptr,
+    shared_ptr<vector<shared_ptr<vector<vector<int>>>>>children_state_ptr
+    ){
+    vector<vector<int>> child_state;
+    shared_ptr<vector<vector<int>>> child_state_ptr;
+    vector<pair<int,int>> directions ={
+        {-1,0}, {1,0},{0,-1},{0,1}
+    };
+    int empty_location_x;
+    int empty_location_y;
+    for (int i = 0; i < (*parent_state_ptr).size(); i++) {
+        for (int j = 0; j < (*parent_state_ptr)[i].size(); j++) {
+            if ((*parent_state_ptr)[i][j] == 0) {
+                empty_location_x = j;
+                empty_location_y = i;
             }
-
         }
-        return children;
+    }
+    for (auto direction :directions){
+        int destination_x = empty_location_x + direction.first;
+        int destination_y = empty_location_y + direction.second;
+        if ((0<=destination_x && destination_x<(*parent_state_ptr)[0].size()) && ((0<=destination_y && destination_y<(*parent_state_ptr).size())) ){
+            child_state = (*parent_state_ptr);
+            swap(child_state[empty_location_y][empty_location_x], child_state[destination_y][destination_x]);
+            child_state_ptr = make_shared<vector<vector<int>> >(child_state);
+            (*children_state_ptr).push_back(child_state_ptr);
+        }
+    }
 
-    }   
+
+}   
     // static bool Compare(const Node& person1, const Node& person2) {
         
     // }
 
-};
 
-std::size_t vector_hash(vector<vector<int>> const vec){
-  std::size_t seed = vec.size();
-  for( auto row:vec){
+
+std::size_t vector_hash(const shared_ptr<vector<vector<int>>>vec){
+  std::size_t seed = (*vec).size();
+  for( auto row:(*vec)){
       for(auto& i : row) {
         seed ^= static_cast<uint32_t>(i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
@@ -139,73 +110,120 @@ std::size_t vector_hash(vector<vector<int>> const vec){
   return seed;
 }
 
+inline int get_manhattan_distance(const shared_ptr<vector<vector<int>>> state_ptr) {
+    int manhattan_distance = 0;
+    for (int y = 0; y < (*state_ptr).size(); y++) {
+        for (int x = 0; x < (*state_ptr)[y].size(); x++) {
+            int item = (*state_ptr)[y][x];
+            for (int g_y = 0; g_y < GOALSTATE.size(); g_y++) {
+                for (int g_x = 0; g_x < GOALSTATE[g_y].size(); g_x++) {
+                    int g_item = GOALSTATE[g_y][g_x];
+                    if (item != 0 && item == g_item) {
+                        manhattan_distance += abs(x - g_x) + abs(y - g_y);
+                    }
+                }
+            }
+        }
+    }
+    return manhattan_distance;
+}
+struct Node{
+    int f_hat;
+    int g_hat;
+    shared_ptr<vector<vector<int>>> state_ptr;
+    shared_ptr<Node> parent;
+};
 struct CompareNodes {
-    bool operator()(shared_ptr<Node> a, shared_ptr<Node> b) {
+    bool operator()(const shared_ptr<Node>& a, const shared_ptr<Node>& b) {
         return a->f_hat > b->f_hat;
     }
 };
 
-shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
 
-    unordered_map<size_t,shared_ptr<Node>> hash_map;
-    size_t hashValue;
+
+void a_star_search(vector<vector<int>> puzzle){
+    clock_t start = clock();
+
+    
     int loop_count = 0;
     int node_num = 0;
     int min;
     int index;
     int i;
-    vector<shared_ptr<Node>> children;
-    // vector<shared_ptr<Node>> open_list;
-    shared_ptr<Node> closed_node;
-    priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>,CompareNodes> pq;
-    shared_ptr<Node> head;
 
+    
+    shared_ptr<Node>head_ptr;
+    shared_ptr<Node>child_ptr;
 
-    clock_t start = clock();
-    shared_ptr<Node> parent = make_shared<Node>(puzzle);
-    pq.push(parent);
+    priority_queue<shared_ptr<Node> , vector<shared_ptr<Node>>,CompareNodes> pq;
+    unordered_map<size_t,shared_ptr<Node>> hash_map;
+    size_t hashValue;
+
+    Node root;
+    
+    root.state_ptr = make_shared<vector<vector<int>>>(puzzle);
+    root.g_hat = 0;
+    root.f_hat = root.g_hat + get_manhattan_distance(root.state_ptr);
+    root.parent = nullptr;
+
+    // hashValue = vector_hash(root.state);
+    auto node_ptr = make_shared<Node>(root);
+    // hash_map[hashValue] = node_ptr;
+
+    pq.push(node_ptr);
 
     while(1){
         
-        head = pq.top();
+        head_ptr = pq.top();
         pq.pop();
 
-        hashValue = vector_hash(head->state);
+        hashValue = vector_hash(head_ptr->state_ptr);
         if (hash_map.find(hashValue) != hash_map.end()) {
-            if (hash_map[hashValue]->f_hat < head->f_hat){
+            if (hash_map[hashValue]->f_hat <= head_ptr->f_hat){
                 continue;
+            }else{
+                hash_map[hashValue] = head_ptr;
             }
-
         } else {
-            hash_map[hashValue] = head;
+            hash_map[hashValue] = head_ptr;
         }
         loop_count = loop_count + 1;
 
 
-        if (head->state==GOALSTATE){
+        if (*(head_ptr->state_ptr)==GOALSTATE){
             clock_t end = clock();
             const double time = static_cast<double>(end - start) / CLOCKS_PER_SEC ;
 
             cout<<"-------------------"<<endl;
+            cout<<"g_hat:               "<<head_ptr->g_hat<<endl;
             cout<<"loop_count:          "<<loop_count<<endl;
             cout<<"node_num:            "<<node_num<<endl;
             cout<<"time[s]:             "<<time<<endl;
-            cout<<"node_num/time[s]:    "<<node_num/time<<endl;
-            return head;
+            cout<<"node_num/time[s]:    "<<std::fixed << std::setprecision(0) <<node_num/time<<endl;
+
+            return ;
         }
 
-        
-        children = head->expand(head);
+        vector<shared_ptr<vector<vector<int>>>> children_state;
+        auto children_state_ptr = make_shared<vector<shared_ptr<vector<vector<int>>>>>(children_state);
+        expand(head_ptr->state_ptr,children_state_ptr);
 
-        node_num = node_num + children.size();
+        node_num = node_num + (*children_state_ptr).size();
 
-        for (auto child: children){
-            pq.push(child);
+        for (const shared_ptr<vector<vector<int>>> child_state_ptr: (*children_state_ptr)){
+            Node child;
+            child.g_hat = head_ptr->g_hat + 1;
+            child.f_hat = child.g_hat + get_manhattan_distance(child_state_ptr);
+            child.state_ptr = child_state_ptr;
+            child.parent = head_ptr;
+
+            child_ptr = make_shared<Node>(child);
+            pq.push(child_ptr);
 
         }
 
     }
-    return nullptr;
+    return;
 }
 
 std::vector<std::vector<int>> generateRandomPuzzle(int moveCount) {
@@ -271,10 +289,11 @@ int main() {
     }  
     std::cout << std::endl;
 
-    shared_ptr<Node> answer = a_star_search(puzzle);
+
+    a_star_search(puzzle);
 
     
-    answer->show_score();
+
 
     // answer->show_path();
 
