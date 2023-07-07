@@ -147,7 +147,7 @@ struct CompareNodes {
 
 shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
 
-    std::unordered_set<int> seenValues;
+    unordered_map<size_t,shared_ptr<Node>> hash_map;
     size_t hashValue;
     int loop_count = 0;
     int node_num = 0;
@@ -155,12 +155,14 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
     int index;
     int i;
     vector<shared_ptr<Node>> children;
-    shared_ptr<Node> parent = make_shared<Node>(puzzle);
     // vector<shared_ptr<Node>> open_list;
-    vector<shared_ptr<Node>> closed_list;
+    shared_ptr<Node> closed_node;
     priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>,CompareNodes> pq;
     shared_ptr<Node> head;
+
+
     clock_t start = clock();
+    shared_ptr<Node> parent = make_shared<Node>(puzzle);
     pq.push(parent);
 
     while(1){
@@ -169,16 +171,13 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
         pq.pop();
 
         hashValue = vector_hash(head->state);
-        if (seenValues.find(hashValue) != seenValues.end()) {
-
-            auto in_closed_list = find_if(closed_list.begin(),closed_list.end(),[head](shared_ptr<Node> n){
-                return head->state==n->state && head->f_hat < n->f_hat;
-            });
-            if(in_closed_list==closed_list.end()){
+        if (hash_map.find(hashValue) != hash_map.end()) {
+            if (hash_map[hashValue]->f_hat < head->f_hat){
                 continue;
             }
+
         } else {
-            seenValues.insert(hashValue);
+            hash_map[hashValue] = head;
         }
         loop_count = loop_count + 1;
 
@@ -204,8 +203,6 @@ shared_ptr<Node>  a_star_search(vector<vector<int>> puzzle){
             pq.push(child);
 
         }
-
-        closed_list.push_back(head);
 
     }
     return nullptr;
